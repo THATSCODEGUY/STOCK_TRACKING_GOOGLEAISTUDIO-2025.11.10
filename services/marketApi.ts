@@ -28,8 +28,17 @@ export const fetchQuote = (ticker: string): Promise<Quote> => {
     setTimeout(() => {
       const upperTicker = ticker.toUpperCase();
 
-      if (upperTicker === 'FAIL' || !tickerCache[upperTicker]) {
+      if (upperTicker === 'FAIL') {
         return reject(new Error(`Invalid ticker symbol: ${ticker}`));
+      }
+      
+      // If the ticker is new, dynamically add it to the cache.
+      if (!tickerCache[upperTicker]) {
+          console.log(`New ticker "${upperTicker}" detected. Generating mock data.`);
+          tickerCache[upperTicker] = {
+              basePrice: 50 + Math.random() * 450, // Assign a random base price between $50 and $500
+              companyName: `${upperTicker} Company Inc.` // Generate a placeholder name
+          };
       }
 
       const cacheEntry = tickerCache[upperTicker];
@@ -38,26 +47,19 @@ export const fetchQuote = (ticker: string): Promise<Quote> => {
       // Simulate price fluctuation
       const changePercent = (Math.random() - 0.495) * 0.05; // -2.5% to +2.5% change
       const newPrice = basePrice * (1 + changePercent);
+      const previousClose = basePrice / (1 + (Math.random() - 0.5) * 0.1);
+      const dayHigh = Math.max(newPrice, previousClose) * (1 + Math.random() * 0.02);
+      const dayLow = Math.min(newPrice, previousClose) * (1 - Math.random() * 0.02);
       
-      // Update cache for next fetch to show continuity
-      tickerCache[upperTicker].basePrice = newPrice;
-
-      const previousClose = basePrice / (1 + (Math.random() - 0.5) * 0.01); // Close to base price
-      const dayHigh = Math.max(newPrice, previousClose) * (1 + Math.random() * 0.02); // Up to 2% higher
-      const dayLow = Math.min(newPrice, previousClose) * (1 - Math.random() * 0.02); // Up to 2% lower
-      const volume = 20_000_000 + Math.random() * 50_000_000; // Realistic volume in tens of millions
-
-      const quote: Quote = {
+      resolve({
         ticker: upperTicker,
         companyName: cacheEntry.companyName,
-        price: parseFloat(newPrice.toFixed(2)),
-        volume: Math.round(volume),
-        dayHigh: parseFloat(dayHigh.toFixed(2)),
-        dayLow: parseFloat(dayLow.toFixed(2)),
-        previousClose: parseFloat(previousClose.toFixed(2)),
-      };
-      
-      resolve(quote);
-    }, 500 + Math.random() * 500); // Simulate network latency
+        price: newPrice,
+        volume: 1_000_000 + Math.random() * 10_000_000,
+        dayHigh,
+        dayLow,
+        previousClose
+      });
+    }, 300 + Math.random() * 400); // Simulate network latency
   });
 };
